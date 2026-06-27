@@ -46,12 +46,21 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
 ];
 
 function defaultStartIso(initialDate?: Date | null): string {
+  // Week/day view slot clicks carry a precise hour+minute — honour it
+  // (snapped to the nearest 15 minutes) instead of the month-view
+  // behaviour below, which only gets a bare date (midnight) and rounds
+  // to "the next hour" as a sensible default.
+  if (initialDate && (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0)) {
+    const snapped = new Date(initialDate);
+    const roundedMinutes = Math.round(snapped.getMinutes() / 15) * 15;
+    snapped.setMinutes(roundedMinutes, 0, 0);
+    return snapped.toISOString();
+  }
   const base = initialDate ? new Date(initialDate) : new Date();
   base.setMinutes(0, 0, 0);
   base.setHours(base.getHours() + 1);
   return base.toISOString();
 }
-
 function plusOneHour(isoUtc: string): string {
   return new Date(new Date(isoUtc).getTime() + 60 * 60 * 1000).toISOString();
 }

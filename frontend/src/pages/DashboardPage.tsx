@@ -3,31 +3,49 @@ import { useCalendarStore } from '../store/calendarStore';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import CalendarHeader from '../features/calendar/CalendarHeader';
 import MonthGrid from '../features/calendar/MonthGrid';
+import WeekGrid from '../features/calendar/WeekGrid';
+import DayGrid from '../features/calendar/DayGrid';
 import SideDrawer from '../features/calendar/SideDrawer';
 import EventDetailModal from '../features/calendar/EventDetailModal';
 import CreateEventDialog from '../features/calendar/create-event/CreateEventDialog';
-import type { CalendarEvent } from '../types/event.types';
+import type { CalendarEvent, CalendarView } from '../types/event.types';
 import { eventService } from '../services/event.service';
 import { useQuery } from '@tanstack/react-query';
 
-// Skeleton for loading state
-const GridSkeleton: React.FC = () => (
-  <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 animate-pulse">
-    {Array.from({ length: 42 }).map((_, i) => (
-      <div key={i} className="bg-white min-h-[100px]" />
-    ))}
-  </div>
-);
+// Skeleton for loading state — shape adapts to the active view so the
+// layout doesn't jump once real data lands.
+const GridSkeleton: React.FC<{ view: CalendarView }> = ({ view }) => {
+  if (view === 'month') {
+    return (
+      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 animate-pulse">
+        {Array.from({ length: 42 }).map((_, i) => (
+          <div key={i} className="bg-white min-h-[100px]" />
+        ))}
+      </div>
+    );
+  }
+  const cols = view === 'week' ? 7 : 1;
+  return (
+    <div className="flex-1 flex animate-pulse">
+      <div className="w-14 flex-shrink-0 bg-gray-50" />
+      <div className="flex-1 grid gap-px bg-gray-200" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        {Array.from({ length: cols }).map((_, i) => (
+          <div key={i} className="bg-white" />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const DashboardPage: React.FC = () => {
-  const { currentDate, dashboardMode } = useCalendarStore();
+  const { currentDate, view, setView, setCurrentDate, dashboardMode } = useCalendarStore();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDialogDate, setCreateDialogDate] = useState<Date | null>(null);
 
-  // Primary calendar fetch
-  const { data: events = [], isLoading, isError } = useCalendarEvents(currentDate);
+  // Primary calendar fetch — range depends on which view is active
+  const { data: events = [], isLoading, isError } = useCalendarEvents(currentDate, view);
 
   // Search — only fires when query is non-empty, debounced by React Query's staleTime
   const { data: searchResults } = useQuery({
@@ -44,7 +62,9 @@ const DashboardPage: React.FC = () => {
     return events;
   }, [searchQuery, searchResults, events]);
 
-  const handleDateClick = (date: Date) => {
+  // Used by all three grids: a bare date (month cell) or a precise
+  // date+time (week/day slot) to pre-fill the create-event dialog with.
+  const handleSlotClick = (date: Date) => {
     setCreateDialogDate(date);
     setCreateDialogOpen(true);
   };
@@ -52,6 +72,11 @@ const DashboardPage: React.FC = () => {
   const handleCreateClick = () => {
     setCreateDialogDate(null); // no specific date pre-fill — defaults to "next hour, today"
     setCreateDialogOpen(true);
+  };
+
+  const handleNavigateToDay = (date: Date) => {
+    setCurrentDate(date);
+    setView('day');
   };
 
   return (
@@ -89,12 +114,25 @@ const DashboardPage: React.FC = () => {
             <p className="text-sm">Couldn't load events. Check your connection.</p>
           </div>
         ) : isLoading ? (
-          <GridSkeleton />
-        ) : (
+          <GridSkeleton view={view} />
+        ) : view === 'month' ? (
           <MonthGrid
             events={displayEvents}
             onEventClick={setSelectedEvent}
-            onDateClick={handleDateClick}
+            onDateClick={handleSlotClick}
+            onNavigateToDay={handleNavigateToDay}
+          />
+        ) : view === 'week' ? (
+          <WeekGrid
+            events={displayEvents}
+            onEventClick={setSelectedEvent}
+            onSlotClick={handleSlotClick}
+          />
+        ) : (
+          <DayGrid
+            events={displayEvents}
+            onEventClick={setSelectedEvent}
+            onSlotClick={handleSlotClick}
           />
         )}
       </main>

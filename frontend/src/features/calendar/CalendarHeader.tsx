@@ -1,17 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCalendarStore } from '../../store/calendarStore';
-import { formatMonthYear } from './utils/calendarUtils';
+import { formatHeaderLabel } from './utils/calendarUtils';
 import NotificationBell from './NotificationBell';
-import type { DashboardMode } from '../../types/event.types';
+import type { DashboardMode, CalendarView } from '../../types/event.types';
 
 interface Props {
   onSearch: (q: string) => void;
 }
 
+const VIEW_OPTIONS: { value: CalendarView; label: string; shortcut: string }[] = [
+  { value: 'day', label: 'Day', shortcut: 'D' },
+  { value: 'week', label: 'Week', shortcut: 'W' },
+  { value: 'month', label: 'Month', shortcut: 'M' },
+];
+
 const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
   const {
-    currentDate, dashboardMode, setDashboardMode,
-    goToPrevMonth, goToNextMonth, goToToday,
+    currentDate, view, setView, dashboardMode, setDashboardMode,
+    goToPrevious, goToNext, goToToday,
     setDrawerOpen,
   } = useCalendarStore();
 
@@ -19,9 +25,42 @@ const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
   const [searchValue, setSearchValue] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const viewMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
+
+  // Close the view dropdown when clicking outside it.
+  useEffect(() => {
+    if (!viewMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) {
+        setViewMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [viewMenuOpen]);
+
+  // Google Calendar-style keyboard shortcuts: D/W/M switch views, T jumps to
+  // today. Ignored while typing in the search box (or any input/textarea).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'd') setView('day');
+      else if (key === 'w') setView('week');
+      else if (key === 'm') setView('month');
+      else if (key === 't') goToToday();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setView, goToToday]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
@@ -75,18 +114,18 @@ const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
       {/* Prev / Next */}
       <div className="flex items-center gap-0.5">
         <button
-          onClick={goToPrevMonth}
+          onClick={goToPrevious}
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-600 focus:outline-none"
-          aria-label="Previous month"
+          aria-label={`Previous ${view}`}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <button
-          onClick={goToNextMonth}
+          onClick={goToNext}
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-600 focus:outline-none"
-          aria-label="Next month"
+          aria-label={`Next ${view}`}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -94,9 +133,9 @@ const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
         </button>
       </div>
 
-      {/* Month / Year label */}
-      <h2 className="text-xl font-normal text-gray-700 min-w-[160px]">
-        {formatMonthYear(currentDate)}
+      {/* Date label */}
+      <h2 className="text-xl font-normal text-gray-700 min-w-[160px] truncate">
+        {formatHeaderLabel(currentDate, view)}
       </h2>
 
       <div className="flex-1" />
@@ -134,6 +173,43 @@ const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
+        )}
+      </div>
+
+      {/* View switcher (Day / Week / Month) */}
+      <div className="relative" ref={viewMenuRef}>
+        <button
+          onClick={() => setViewMenuOpen((o) => !o)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700
+                     border border-gray-300 rounded-full hover:bg-gray-50 active:bg-gray-100
+                     transition-colors focus:outline-none capitalize"
+        >
+          {view}
+          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {viewMenuOpen && (
+          <div
+            className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-card border border-gray-100
+                       py-1 z-30 animate-fade-in"
+          >
+            {VIEW_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => { setView(opt.value); setViewMenuOpen(false); }}
+                className={`
+                  w-full flex items-center justify-between px-3 py-2 text-sm text-left
+                  hover:bg-gray-50 transition-colors
+                  ${view === opt.value ? 'text-blue-600 font-medium' : 'text-gray-700'}
+                `}
+              >
+                {opt.label}
+                <span className="text-xs text-gray-400">{opt.shortcut}</span>
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

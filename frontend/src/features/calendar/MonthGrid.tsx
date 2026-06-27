@@ -12,9 +12,11 @@ interface Props {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onDateClick: (date: Date) => void;
+  /** Clicking the date number (not the rest of the cell) jumps into day view. */
+  onNavigateToDay?: (date: Date) => void;
 }
 
-const MonthGrid: React.FC<Props> = ({ events, onEventClick, onDateClick }) => {
+const MonthGrid: React.FC<Props> = ({ events, onEventClick, onDateClick, onNavigateToDay }) => {
   const { currentDate, activeFilters } = useCalendarStore();
   const [expandedDay, setExpandedDay] = useState<Date | null>(null);
 
@@ -57,14 +59,18 @@ const MonthGrid: React.FC<Props> = ({ events, onEventClick, onDateClick }) => {
               {/* Date number */}
               <div className="flex justify-center mb-0.5">
                 <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigateToDay?.(cell.date);
+                  }}
                   className={`
                     inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-normal
-                    transition-colors duration-100
+                    cursor-pointer transition-colors duration-100
                     ${cell.isToday
-                      ? 'bg-blue-600 text-white font-medium'
+                      ? 'bg-blue-600 text-white font-medium hover:bg-blue-700'
                       : cell.isCurrentMonth
-                        ? 'text-gray-900 hover:bg-gray-100'
-                        : 'text-gray-400'
+                        ? 'text-gray-900 hover:bg-gray-200'
+                        : 'text-gray-400 hover:bg-gray-200'
                     }
                   `}
                 >
