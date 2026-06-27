@@ -1,0 +1,105 @@
+import React, { useState, useMemo } from 'react';
+import { useCalendarStore } from '../store/calendarStore';
+import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import CalendarHeader from '../features/calendar/CalendarHeader';
+import MonthGrid from '../features/calendar/MonthGrid';
+import SideDrawer from '../features/calendar/SideDrawer';
+import EventDetailModal from '../features/calendar/EventDetailModal';
+import type { CalendarEvent } from '../types/event.types';
+import { eventService } from '../services/event.service';
+import { useQuery } from '@tanstack/react-query';
+
+// Skeleton for loading state
+const GridSkeleton: React.FC = () => (
+  <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 animate-pulse">
+    {Array.from({ length: 42 }).map((_, i) => (
+      <div key={i} className="bg-white min-h-[100px]" />
+    ))}
+  </div>
+);
+
+const DashboardPage: React.FC = () => {
+  const { currentDate, dashboardMode } = useCalendarStore();
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Primary calendar fetch
+  const { data: events = [], isLoading, isError } = useCalendarEvents(currentDate);
+
+  // Search — only fires when query is non-empty, debounced by React Query's staleTime
+  const { data: searchResults } = useQuery({
+    queryKey: ['event-search', searchQuery],
+    queryFn: () => eventService.searchEvents(searchQuery),
+    enabled: searchQuery.trim().length >= 2,
+    staleTime: 1000 * 30,
+    select: (d) => d.events,
+  });
+
+  // If searching, show search results instead of calendar events
+  const displayEvents = useMemo(() => {
+    if (searchQuery.trim().length >= 2 && searchResults) return searchResults;
+    return events;
+  }, [searchQuery, searchResults, events]);
+
+  const handleDateClick = (_date: Date) => {
+    // Will open quick-create modal in future slice
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
+      {/* Top toolbar */}
+      <CalendarHeader onSearch={setSearchQuery} />
+
+      {/* Dashboard mode banner — subtle indicator */}
+      <div className={`
+        flex-shrink-0 px-4 py-1.5 text-xs font-medium flex items-center gap-2 border-b
+        ${dashboardMode === 'professional'
+          ? 'bg-blue-50 text-blue-700 border-blue-100'
+          : 'bg-green-50 text-green-700 border-green-100'
+        }
+      `}>
+        <span className={`w-1.5 h-1.5 rounded-full ${dashboardMode === 'professional' ? 'bg-blue-500' : 'bg-green-500'}`} />
+        {dashboardMode === 'professional' ? 'Professional workspace' : 'Personal dashboard'}
+        <span className="text-gray-400 font-normal ml-1">· All events shown on one calendar</span>
+      </div>
+
+      {/* Search result notice */}
+      {searchQuery.trim().length >= 2 && (
+        <div className="flex-shrink-0 px-4 py-2 bg-yellow-50 border-b border-yellow-100 text-xs text-yellow-800">
+          Showing {displayEvents.length} result{displayEvents.length !== 1 ? 's' : ''} for "{searchQuery}"
+        </div>
+      )}
+
+      {/* Calendar body */}
+      <main className="flex-1 flex flex-col min-h-0">
+        {isError ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500 flex-col gap-2">
+            <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm">Couldn't load events. Check your connection.</p>
+          </div>
+        ) : isLoading ? (
+          <GridSkeleton />
+        ) : (
+          <MonthGrid
+            events={displayEvents}
+            onEventClick={setSelectedEvent}
+            onDateClick={handleDateClick}
+          />
+        )}
+      </main>
+
+      {/* Side drawer */}
+      <SideDrawer />
+
+      {/* Event detail modal */}
+      <EventDetailModal
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
+    </div>
+  );
+};
+
+export default DashboardPage;
