@@ -5,6 +5,7 @@ import CalendarHeader from '../features/calendar/CalendarHeader';
 import MonthGrid from '../features/calendar/MonthGrid';
 import SideDrawer from '../features/calendar/SideDrawer';
 import EventDetailModal from '../features/calendar/EventDetailModal';
+import CreateEventDialog from '../features/calendar/create-event/CreateEventDialog';
 import type { CalendarEvent } from '../types/event.types';
 import { eventService } from '../services/event.service';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +23,8 @@ const DashboardPage: React.FC = () => {
   const { currentDate, dashboardMode } = useCalendarStore();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogDate, setCreateDialogDate] = useState<Date | null>(null);
 
   // Primary calendar fetch
   const { data: events = [], isLoading, isError } = useCalendarEvents(currentDate);
@@ -41,8 +44,14 @@ const DashboardPage: React.FC = () => {
     return events;
   }, [searchQuery, searchResults, events]);
 
-  const handleDateClick = (_date: Date) => {
-    // Will open quick-create modal in future slice
+  const handleDateClick = (date: Date) => {
+    setCreateDialogDate(date);
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateClick = () => {
+    setCreateDialogDate(null); // no specific date pre-fill — defaults to "next hour, today"
+    setCreateDialogOpen(true);
   };
 
   return (
@@ -91,12 +100,19 @@ const DashboardPage: React.FC = () => {
       </main>
 
       {/* Side drawer */}
-      <SideDrawer />
+      <SideDrawer onCreateClick={handleCreateClick} />
 
       {/* Event detail modal */}
       <EventDetailModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
+      />
+
+      {/* Create event dialog */}
+      <CreateEventDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        initialDate={createDialogDate}
       />
     </div>
   );

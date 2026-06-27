@@ -19,7 +19,7 @@ interface CalendarState {
   goToToday: () => void;
 }
 
-const ALL_TYPES: EventType[] = ['personal', 'meeting', 'professional', 'goal', 'holiday'];
+const ALL_TYPES: EventType[] = ['personal', 'meeting', 'goal', 'holiday'];
 
 export const useCalendarStore = create<CalendarState>((set) => ({
   currentDate: new Date(),

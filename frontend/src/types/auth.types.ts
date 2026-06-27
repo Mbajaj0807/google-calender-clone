@@ -5,6 +5,7 @@ export interface User {
   profilePicture: string;
   designation: string;
   timezone: string;
+  organizationId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,4 +29,15 @@ export interface RegisterPayload {
 
 export interface ApiError {
   message: string;
+}
+
+// Trimmed projection returned by GET /users/organization and GET /users/:id
+// (password hash stripped server-side; matches the .select() in user.controller.js)
+export interface OrgMember {
+  _id: string;
+  name: string;
+  email: string;
+  profilePicture: string;
+  designation: string;
+  dateOfBirth?: string;
 }

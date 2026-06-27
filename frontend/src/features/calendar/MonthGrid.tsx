@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { buildMonthGrid } from './utils/calendarUtils';
 import EventPill from './EventPill';
-import type { CalendarEvent, EventType } from '../../types/event.types';
+import type { CalendarEvent } from '../../types/event.types';
 import { useCalendarStore } from '../../store/calendarStore';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -22,8 +22,6 @@ const MonthGrid: React.FC<Props> = ({ events, onEventClick, onDateClick }) => {
     () => buildMonthGrid(currentDate, events, activeFilters),
     [currentDate, events, activeFilters]
   );
-
-  const today = new Date();
 
   return (
     <div className="flex flex-col flex-1 min-h-0 select-none">

@@ -3,17 +3,21 @@ import { useCalendarStore } from '../../store/calendarStore';
 import { useAuthStore } from '../../store/authStore';
 import { useLogout } from '../../hooks/useAuth';
 import MiniCalendar from './MiniCalendar';
+import OrganizationSection from './OrganizationSection';
 import type { EventType } from '../../types/event.types';
 
 const FILTERS: { type: EventType; label: string; color: string }[] = [
-  { type: 'personal',     label: 'Personal',     color: '#34A853' },
-  { type: 'meeting',      label: 'Meetings',      color: '#4285F4' },
-  { type: 'professional', label: 'Professional',  color: '#1A73E8' },
-  { type: 'goal',         label: 'Goals',         color: '#A142F4' },
-  { type: 'holiday',      label: 'Holidays',      color: '#EA4335' },
+  { type: 'personal', label: 'Personal', color: '#34A853' },
+  { type: 'meeting',  label: 'Meetings', color: '#4285F4' },
+  { type: 'goal',     label: 'Goals',    color: '#A142F4' },
+  { type: 'holiday',  label: 'Holidays', color: '#EA4335' },
 ];
 
-const SideDrawer: React.FC = () => {
+interface Props {
+  onCreateClick: () => void;
+}
+
+const SideDrawer: React.FC<Props> = ({ onCreateClick }) => {
   const { drawerOpen, setDrawerOpen, activeFilters, toggleFilter } = useCalendarStore();
   const { user } = useAuthStore();
   const logout = useLogout();
@@ -81,9 +85,15 @@ const SideDrawer: React.FC = () => {
 
           {/* Create event button */}
           <div className="px-4 py-3">
-            <button className="flex items-center gap-3 w-full px-4 py-2.5 rounded-2xl border border-gray-200
-                               shadow-sm hover:shadow-md text-gray-700 font-medium text-sm bg-white
-                               transition-shadow duration-150 focus:outline-none">
+            <button
+              onClick={() => {
+                setDrawerOpen(false);
+                onCreateClick();
+              }}
+              className="flex items-center gap-3 w-full px-4 py-2.5 rounded-2xl border border-gray-200
+                         shadow-sm hover:shadow-md text-gray-700 font-medium text-sm bg-white
+                         transition-shadow duration-150 focus:outline-none"
+            >
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -127,6 +137,9 @@ const SideDrawer: React.FC = () => {
               ))}
             </div>
           </div>
+
+          {/* Organization membership */}
+          <OrganizationSection />
 
           {/* Nav items — placeholders for future pages */}
           <div className="px-3 py-2 mt-1 border-t border-gray-100">

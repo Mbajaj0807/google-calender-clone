@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const User = require("../models/User.model");
+const Organization = require("../models/Organization.model");
 
 // PUT /users/profile
 const updateProfile = async (req, res) => {
@@ -6,6 +8,27 @@ const updateProfile = async (req, res) => {
     const allowed = ["name", "profilePicture", "dateOfBirth", "designation", "timezone"];
     const updates = {};
     allowed.forEach((f) => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+
+    // organizationId is handled separately so we can validate it —
+    // letting it through the generic whitelist above would let a user
+    // set their org to a garbage/nonexistent ID with no feedback.
+    if (req.body.organizationId !== undefined) {
+      const { organizationId } = req.body;
+
+      if (organizationId === null || organizationId === "") {
+        // Explicit leave-organization.
+        updates.organizationId = null;
+      } else {
+        if (!mongoose.isValidObjectId(organizationId)) {
+          return res.status(400).json({ message: "organizationId is not a valid ID" });
+        }
+        const org = await Organization.findById(organizationId);
+        if (!org) {
+          return res.status(404).json({ message: "Organization not found" });
+        }
+        updates.organizationId = org._id;
+      }
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select("-passwordHash");
     res.json({ user });

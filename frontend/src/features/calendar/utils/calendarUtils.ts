@@ -46,10 +46,9 @@ export function buildMonthGrid(
 // Colour mapping per event type (fallback to event.color if set)
 export function getEventColor(event: CalendarEvent): string {
   if (event.color) return event.color;
-  const defaults: Record<string, string> = {
+  const defaults: Record<EventType, string> = {
     personal: '#34A853',
     meeting: '#4285F4',
-    professional: '#1A73E8',
     goal: '#A142F4',
     holiday: '#EA4335',
   };
