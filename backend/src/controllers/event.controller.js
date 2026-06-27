@@ -1,6 +1,39 @@
 const Event = require("../models/Event.model");
 const Invitation = require("../models/Invitation.model");
 const { checkConflicts, findCommonSlots } = require("../services/availability.service");
+const { buildVisibleEventsFilter } = require("../services/eventVisibility.service");
+
+/**
+ * Annotates each event with `myInvitationStatus` and `myInvitationId` — the
+ * current user's own Invitation record for that event, or both null if the
+ * user is the organizer (organizers don't have an Invitation record for
+ * their own event). The frontend uses status to render a "tentative" visual
+ * treatment, and the id to let the user change their response (e.g. from
+ * tentative to accepted) directly from the event detail view.
+ */
+async function attachMyInvitationStatus(events, userId) {
+  if (!events.length) return events;
+
+  const eventIds = events.map((e) => e._id);
+  const myInvitations = await Invitation.find({
+    eventId: { $in: eventIds },
+    userId,
+  }).select("eventId status");
+
+  const invitationByEventId = new Map(
+    myInvitations.map((inv) => [inv.eventId.toString(), inv])
+  );
+
+  return events.map((event) => {
+    const obj = event.toObject ? event.toObject() : event;
+    const myInvitation = invitationByEventId.get(event._id.toString());
+    return {
+      ...obj,
+      myInvitationStatus: myInvitation?.status ?? null,
+      myInvitationId: myInvitation?._id ?? null,
+    };
+  });
+}
 
 // POST /events
 const createEvent = async (req, res) => {
@@ -94,14 +127,17 @@ const getCalendarEvents = async (req, res) => {
     if (!start || !end) return res.status(400).json({ message: "start and end query params required" });
 
     const userId = req.user._id;
+    const visibilityFilter = await buildVisibleEventsFilter(userId);
+
     const events = await Event.find({
-      $or: [{ organizerId: userId }, { participantIds: userId }],
+      ...visibilityFilter,
       status: { $ne: "cancelled" },
       startTime: { $lt: new Date(end) },
       endTime: { $gt: new Date(start) },
     }).populate("organizerId", "name email").populate("participantIds", "name email profilePicture dateOfBirth");
 
-    res.json({ events });
+    const eventsWithStatus = await attachMyInvitationStatus(events, userId);
+    res.json({ events: eventsWithStatus });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -131,12 +167,16 @@ const getTodayEvents = async (req, res) => {
     const userId = req.user._id;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const end = new Date(); end.setHours(23, 59, 59, 999);
+    const visibilityFilter = await buildVisibleEventsFilter(userId);
+
     const events = await Event.find({
-      $or: [{ organizerId: userId }, { participantIds: userId }],
+      ...visibilityFilter,
       status: { $ne: "cancelled" },
       startTime: { $gte: start, $lte: end },
     }).sort({ startTime: 1 });
-    res.json({ events });
+
+    const eventsWithStatus = await attachMyInvitationStatus(events, userId);
+    res.json({ events: eventsWithStatus });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -146,12 +186,16 @@ const getTodayEvents = async (req, res) => {
 const getUpcomingEvents = async (req, res) => {
   try {
     const userId = req.user._id;
+    const visibilityFilter = await buildVisibleEventsFilter(userId);
+
     const events = await Event.find({
-      $or: [{ organizerId: userId }, { participantIds: userId }],
+      ...visibilityFilter,
       status: "scheduled",
       startTime: { $gte: new Date() },
     }).sort({ startTime: 1 }).limit(10);
-    res.json({ events });
+
+    const eventsWithStatus = await attachMyInvitationStatus(events, userId);
+    res.json({ events: eventsWithStatus });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

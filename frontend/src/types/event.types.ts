@@ -7,6 +7,7 @@ export type EventStatus = 'scheduled' | 'cancelled' | 'completed';
 export type Visibility = 'private' | 'organization';
 export type DashboardMode = 'professional' | 'personal';
 export type CalendarView = 'month' | 'week' | 'day';
+export type InvitationStatus = 'invited' | 'accepted' | 'declined' | 'tentative';
 
 export interface Organizer {
   _id: string;
@@ -42,6 +43,16 @@ export interface CalendarEvent {
   status: EventStatus;
   createdAt: string;
   updatedAt: string;
+  /**
+   * The current user's own invitation status/id for this event, attached
+   * server-side (see attachMyInvitationStatus in event.controller.js).
+   * Both `null` when the current user is the organizer (organizers don't
+   * have an Invitation record for their own event). Only present on
+   * responses from GET /events/calendar, /events/today, /events/upcoming —
+   * NOT on /events/:id or /events/search.
+   */
+  myInvitationStatus: InvitationStatus | null;
+  myInvitationId: string | null;
 }
 
 export interface CalendarEventsResponse {

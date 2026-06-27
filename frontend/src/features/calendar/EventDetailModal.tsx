@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import type { CalendarEvent } from '../../types/event.types';
 import { getEventColor } from './utils/calendarUtils';
+import { useRespondToInvitation } from '../../hooks/useRespondToInvitation';
 
 interface Props {
   event: CalendarEvent | null;
@@ -13,6 +14,8 @@ const PRIORITY_LABEL: Record<string, string> = {
 };
 
 const EventDetailModal: React.FC<Props> = ({ event, onClose }) => {
+  const respond = useRespondToInvitation();
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
@@ -25,6 +28,7 @@ const EventDetailModal: React.FC<Props> = ({ event, onClose }) => {
   const start = parseISO(event.startTime);
   const end = parseISO(event.endTime);
   const organizer = typeof event.organizerId === 'object' ? event.organizerId : null;
+  const isTentative = event.myInvitationStatus === 'tentative';
 
   return (
     <div
@@ -37,6 +41,41 @@ const EventDetailModal: React.FC<Props> = ({ event, onClose }) => {
       >
         {/* Colour bar */}
         <div className="h-2" style={{ backgroundColor: color }} />
+
+        {/* Tentative status banner — only shown to participants who marked
+            themselves "maybe", giving a quick way to confirm or back out */}
+        {isTentative && event.myInvitationId && (
+          <div className="flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-100">
+            <span className="text-xs font-medium text-amber-800 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              You marked this tentative
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => respond.mutate({ invitationId: event.myInvitationId!, status: 'accepted' })}
+                disabled={respond.isPending}
+                className="text-xs font-medium text-blue-700 hover:underline disabled:opacity-50"
+              >
+                Confirm attendance
+              </button>
+              <button
+                onClick={() =>
+                  respond.mutate(
+                    { invitationId: event.myInvitationId!, status: 'declined' },
+                    { onSuccess: onClose }
+                  )
+                }
+                disabled={respond.isPending}
+                className="text-xs font-medium text-gray-500 hover:underline disabled:opacity-50"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-3">

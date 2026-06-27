@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCalendarStore } from '../../store/calendarStore';
 import { formatMonthYear } from './utils/calendarUtils';
+import NotificationBell from './NotificationBell';
 import type { DashboardMode } from '../../types/event.types';
 
 interface Props {
@@ -154,6 +155,9 @@ const CalendarHeader: React.FC<Props> = ({ onSearch }) => {
           </button>
         ))}
       </div>
+
+      {/* Notifications */}
+      <NotificationBell />
 
       {/* Settings / Account */}
       <button
