@@ -66,7 +66,8 @@ const LoginPage: React.FC = () => {
         <div className="flex flex-col items-center mb-8">
           <CalendarLogo size={48} />
           <h1 className="mt-4 text-2xl font-normal text-gray-800 tracking-tight">Sign in</h1>
-          <p className="mt-1 text-sm text-gray-500">to continue to Calendar</p>
+          <p className="mt-1 text-sm text-gray-500">use emails - arjun@gmail.com , riya@gmail.com</p>
+          <p className="mt-1 text-sm text-gray-500">use password - Password123</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
