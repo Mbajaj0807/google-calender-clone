@@ -8,6 +8,8 @@ import DayGrid from '../features/calendar/DayGrid';
 import SideDrawer from '../features/calendar/SideDrawer';
 import EventDetailModal from '../features/calendar/EventDetailModal';
 import CreateEventDialog from '../features/calendar/create-event/CreateEventDialog';
+import CreatePollDialog from '../features/calendar/polls/CreatePollDialog';
+import PollTrackerPanel from '../features/calendar/polls/PollTrackerPanel';
 import type { CalendarEvent, CalendarView } from '../types/event.types';
 import { eventService } from '../services/event.service';
 import { useQuery } from '@tanstack/react-query';
@@ -43,6 +45,13 @@ const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDialogDate, setCreateDialogDate] = useState<Date | null>(null);
+  const [pollTrackerOpen, setPollTrackerOpen] = useState(false);
+  const [createPollOpen, setCreatePollOpen] = useState(false);
+  const [pollPrefill, setPollPrefill] = useState<{
+    title?: string;
+    participantIds?: string[];
+    durationMinutes?: number;
+  } | null>(null);
 
   // Primary calendar fetch — range depends on which view is active
   const { data: events = [], isLoading, isError } = useCalendarEvents(currentDate, view);
@@ -64,7 +73,7 @@ const DashboardPage: React.FC = () => {
 
   // Used by all three grids: a bare date (month cell) or a precise
   // date+time (week/day slot) to pre-fill the create-event dialog with.
-  const handleSlotClick = (date: Date) => {
+  const handleDateClick = (date: Date) => {
     setCreateDialogDate(date);
     setCreateDialogOpen(true);
   };
@@ -79,10 +88,19 @@ const DashboardPage: React.FC = () => {
     setView('day');
   };
 
+  const handleStartPollFromEventDialog = (prefill: {
+    title: string;
+    participantIds: string[];
+    durationMinutes: number;
+  }) => {
+    setPollPrefill(prefill);
+    setCreatePollOpen(true);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       {/* Top toolbar */}
-      <CalendarHeader onSearch={setSearchQuery} />
+      <CalendarHeader onSearch={setSearchQuery} onPollsClick={() => setPollTrackerOpen(true)} />
 
       {/* Dashboard mode banner — subtle indicator */}
       <div className={`
@@ -119,20 +137,20 @@ const DashboardPage: React.FC = () => {
           <MonthGrid
             events={displayEvents}
             onEventClick={setSelectedEvent}
-            onDateClick={handleSlotClick}
+            onDateClick={handleDateClick}
             onNavigateToDay={handleNavigateToDay}
           />
         ) : view === 'week' ? (
           <WeekGrid
             events={displayEvents}
             onEventClick={setSelectedEvent}
-            onSlotClick={handleSlotClick}
+            onSlotClick={handleDateClick}
           />
         ) : (
           <DayGrid
             events={displayEvents}
             onEventClick={setSelectedEvent}
-            onSlotClick={handleSlotClick}
+            onSlotClick={handleDateClick}
           />
         )}
       </main>
@@ -151,6 +169,23 @@ const DashboardPage: React.FC = () => {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         initialDate={createDialogDate}
+        onStartPoll={handleStartPollFromEventDialog}
+      />
+
+      {/* Create poll dialog */}
+      <CreatePollDialog
+        open={createPollOpen}
+        onClose={() => {
+          setCreatePollOpen(false);
+          setPollPrefill(null);
+        }}
+        prefill={pollPrefill}
+      />
+
+      {/* Poll tracker panel */}
+      <PollTrackerPanel
+        open={pollTrackerOpen}
+        onClose={() => setPollTrackerOpen(false)}
       />
     </div>
   );

@@ -14,11 +14,8 @@ interface CalendarState {
   setDashboardMode: (mode: DashboardMode) => void;
   toggleFilter: (type: EventType) => void;
   setDrawerOpen: (open: boolean) => void;
-  // View-aware navigation — steps by a month/week/day depending on the
-  // currently active view, mirroring how Google Calendar's prev/next
-  // arrows behave.
-  goToPrevious: () => void;
-  goToNext: () => void;
+  goToPrevMonth: () => void;
+  goToNextMonth: () => void;
   goToToday: () => void;
 }
 
@@ -48,21 +45,17 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
   setDrawerOpen: (open) => set({ drawerOpen: open }),
 
-  goToPrevious: () =>
+  goToPrevMonth: () =>
     set((state) => {
       const d = new Date(state.currentDate);
-      if (state.view === 'month') d.setMonth(d.getMonth() - 1);
-      else if (state.view === 'week') d.setDate(d.getDate() - 7);
-      else d.setDate(d.getDate() - 1);
+      d.setMonth(d.getMonth() - 1);
       return { currentDate: d };
     }),
 
-  goToNext: () =>
+  goToNextMonth: () =>
     set((state) => {
       const d = new Date(state.currentDate);
-      if (state.view === 'month') d.setMonth(d.getMonth() + 1);
-      else if (state.view === 'week') d.setDate(d.getDate() + 7);
-      else d.setDate(d.getDate() + 1);
+      d.setMonth(d.getMonth() + 1);
       return { currentDate: d };
     }),
 

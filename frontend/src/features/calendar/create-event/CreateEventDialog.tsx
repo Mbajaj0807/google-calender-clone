@@ -27,6 +27,12 @@ interface Props {
   onClose: () => void;
   /** Optional pre-fill, e.g. when the dialog is opened from clicking a date cell. */
   initialDate?: Date | null;
+  /**
+   * Called when the organizer chooses "Start a meeting poll instead" from
+   * the conflict panel. Receives the title/participants/duration entered so
+   * far so the caller can open CreatePollDialog pre-filled with them.
+   */
+  onStartPoll: (prefill: { title: string; participantIds: string[]; durationMinutes: number }) => void;
 }
 
 type Step = 'form' | 'conflict' | 'availability';
@@ -46,21 +52,12 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
 ];
 
 function defaultStartIso(initialDate?: Date | null): string {
-  // Week/day view slot clicks carry a precise hour+minute — honour it
-  // (snapped to the nearest 15 minutes) instead of the month-view
-  // behaviour below, which only gets a bare date (midnight) and rounds
-  // to "the next hour" as a sensible default.
-  if (initialDate && (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0)) {
-    const snapped = new Date(initialDate);
-    const roundedMinutes = Math.round(snapped.getMinutes() / 15) * 15;
-    snapped.setMinutes(roundedMinutes, 0, 0);
-    return snapped.toISOString();
-  }
   const base = initialDate ? new Date(initialDate) : new Date();
   base.setMinutes(0, 0, 0);
   base.setHours(base.getHours() + 1);
   return base.toISOString();
 }
+
 function plusOneHour(isoUtc: string): string {
   return new Date(new Date(isoUtc).getTime() + 60 * 60 * 1000).toISOString();
 }
@@ -82,7 +79,7 @@ const initialFormState = (initialDate?: Date | null) => {
   };
 };
 
-const CreateEventDialog: React.FC<Props> = ({ open, onClose, initialDate }) => {
+const CreateEventDialog: React.FC<Props> = ({ open, onClose, initialDate, onStartPoll }) => {
   const [step, setStep] = useState<Step>('form');
   const [form, setForm] = useState(initialFormState(initialDate));
   const [formError, setFormError] = useState('');
@@ -217,16 +214,14 @@ const CreateEventDialog: React.FC<Props> = ({ open, onClose, initialDate }) => {
     await finalizeCreate(slot.start, slot.end);
   };
 
-  const handleStartPollStub = () => {
-    // Meeting Polls are a separate feature (see PRD §5.5) — this is a
-    // hand-off stub only. It preserves the title/participants/duration
-    // so a future Poll-creation dialog can pre-fill from them.
+  const handleStartPoll = () => {
+    // Meeting Polls are a separate dialog (CreatePollDialog) — hand off
+    // what's been entered so far so the organizer doesn't retype it.
     onClose();
-    // eslint-disable-next-line no-console
-    console.log('TODO: open Create Poll dialog, pre-filled with:', {
+    onStartPoll({
       title: form.title,
       participantIds: form.participantIds,
-      duration: durationMinutes,
+      durationMinutes: durationMinutes,
     });
   };
 
@@ -408,7 +403,7 @@ const CreateEventDialog: React.FC<Props> = ({ open, onClose, initialDate }) => {
             isSubmitting={createEvent.isPending}
             onSendAnyway={() => finalizeCreate()}
             onFindAvailability={() => setStep('availability')}
-            onStartPoll={handleStartPollStub}
+            onStartPoll={handleStartPoll}
             onBack={() => setStep('form')}
           />
         )}
