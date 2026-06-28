@@ -3,6 +3,7 @@ import { useCalendarStore } from '../../store/calendarStore';
 import { formatMonthYear } from './utils/calendarUtils';
 import NotificationBell from './NotificationBell';
 import { useMyPolls } from '../../hooks/useMyPolls';
+import { getUtcOffsetLabel, getTimeZoneDisplayLabel } from '../../utils/timezone';
 import type { DashboardMode } from '../../types/event.types';
 
 interface Props {
@@ -179,6 +180,20 @@ const CalendarHeader: React.FC<Props> = ({ onSearch, onPollsClick }) => {
           </span>
         )}
       </button>
+
+      {/* Local timezone indicator — all event times on screen are shown in
+          this zone, detected live from the browser/device, not a fixed app
+          setting. Hidden on narrow screens to keep the toolbar uncluttered. */}
+      <span
+        className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+                   text-gray-500 bg-gray-50 border border-gray-200 flex-shrink-0"
+        title={`All times are shown in your local timezone — ${getTimeZoneDisplayLabel()}`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {getUtcOffsetLabel()}
+      </span>
 
       {/* Notifications */}
       <NotificationBell />

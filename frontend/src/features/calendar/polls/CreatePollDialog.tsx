@@ -7,6 +7,7 @@ import { useCreatePoll } from '../../../hooks/usePollMutations';
 import {
   datetimeLocalValueToUtcIso,
   utcIsoToDatetimeLocalValue,
+  getUtcOffsetLabel,
 } from '../../../utils/timezone';
 
 interface Props {
@@ -22,7 +23,7 @@ interface Props {
 
 interface OptionRow {
   key: string;
-  startLocal: string; // datetime-local value, IST wall-clock
+  startLocal: string; // datetime-local value, viewer's local wall-clock
   endLocal: string;
 }
 
@@ -227,7 +228,7 @@ const CreatePollDialog: React.FC<Props> = ({ open, onClose, prefill }) => {
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 mb-2">Times shown in IST (Asia/Kolkata)</p>
+            <p className="text-xs text-gray-400 mb-2">Times shown in your local time ({getUtcOffsetLabel()})</p>
 
             <div className="space-y-2">
               {options.map((opt, i) => (

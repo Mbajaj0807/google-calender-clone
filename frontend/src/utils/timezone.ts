@@ -1,65 +1,84 @@
-import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
+import { format } from 'date-fns';
 
 /**
  * The backend always stores and returns timestamps as UTC ISO strings
  * (see backend/src/models/Event.model.js — plain mongoose `Date` fields).
- * The UI always displays and collects times in IST regardless of the
- * viewer's actual machine timezone, per product requirement.
+ * The UI displays and collects every time in the *viewer's own browser/
+ * device timezone* — whatever IANA zone `Intl` resolves to at runtime.
+ *
+ * There is no app-wide fixed zone here on purpose: two people in different
+ * timezones should each see the same UTC instant rendered at their own
+ * correct local wall-clock time, exactly like Google Calendar does.
  */
-export const APP_TIMEZONE = 'Asia/Kolkata';
 
-/**
- * Convert a UTC ISO string (from the API) into a Date representing
- * the equivalent wall-clock time in IST. Use this before formatting
- * for display.
- */
-export function utcToIst(utcIso: string): Date {
-  return toZonedTime(utcIso, APP_TIMEZONE);
+/** The IANA timezone name the browser is currently running in, e.g. "Asia/Kolkata". */
+export function getBrowserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
 }
 
 /**
- * Convert a "naive" local Date (e.g. built from <input type="datetime-local">,
- * which has no timezone info and is interpreted as IST wall-clock time here)
- * into a UTC ISO string suitable for sending to the API.
+ * A short label for the browser's current UTC offset, e.g. "GMT+5:30" or
+ * "GMT-7". Used as the compact indicator near the notification bell and in
+ * form captions, so people always know what zone the times on screen are in.
  */
-export function istToUtcIso(istWallClockDate: Date): string {
-  return fromZonedTime(istWallClockDate, APP_TIMEZONE).toISOString();
+export function getUtcOffsetLabel(date: Date = new Date()): string {
+  const offsetMinutes = -date.getTimezoneOffset(); // getTimezoneOffset() is UTC-minus-local; flip sign
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const abs = Math.abs(offsetMinutes);
+  const hours = Math.floor(abs / 60);
+  const minutes = abs % 60;
+  return `GMT${sign}${hours}${minutes ? ':' + String(minutes).padStart(2, '0') : ''}`;
 }
 
 /**
- * Format a UTC ISO string for display in IST.
+ * A friendly, full display label for the viewer's timezone, e.g.
+ * "India Standard Time (GMT+5:30)". Falls back to just the offset if the
+ * browser can't resolve a long zone name for some reason.
  */
-export function formatIst(utcIso: string, pattern: string): string {
-  return formatTz(utcToIst(utcIso), pattern, { timeZone: APP_TIMEZONE });
+export function getTimeZoneDisplayLabel(date: Date = new Date()): string {
+  const offset = getUtcOffsetLabel(date);
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'long' }).formatToParts(date);
+    const zoneName = parts.find((p) => p.type === 'timeZoneName')?.value;
+    return zoneName ? `${zoneName} (${offset})` : offset;
+  } catch {
+    return offset;
+  }
+}
+
+/**
+ * Format a UTC ISO string for display in the viewer's own local timezone.
+ * (Previously called `formatIst` and hardcoded to Asia/Kolkata — now
+ * genuinely local to whoever is looking at the screen.)
+ */
+export function formatLocal(utcIso: string, pattern: string): string {
+  if (!utcIso) return '';
+  return format(new Date(utcIso), pattern);
 }
 
 /**
  * Parse the value of an <input type="datetime-local"> (a naive
- * "YYYY-MM-DDTHH:mm" string with no timezone) into a UTC ISO string,
- * treating the input value as IST wall-clock time.
+ * "YYYY-MM-DDTHH:mm" string with no timezone) into a UTC ISO string.
+ *
+ * No manual zone math needed: per spec, `new Date('YYYY-MM-DDTHH:mm')`
+ * (no trailing Z/offset) is parsed as *local* wall-clock time by every
+ * browser, using whatever zone that browser is actually in. `.toISOString()`
+ * then converts that to the correct UTC instant for the API.
  */
 export function datetimeLocalValueToUtcIso(value: string): string {
   if (!value) return '';
-  // new Date('YYYY-MM-DDTHH:mm') is parsed as local-machine time by the JS
-  // engine, which is NOT necessarily IST. Parse the parts manually instead
-  // so the string is always interpreted as IST wall-clock time, independent
-  // of where the browser itself is running.
-  const [datePart, timePart] = value.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  const [hour, minute] = timePart.split(':').map(Number);
-  // Build a UTC-based "fake" Date whose fields are the IST wall-clock numbers,
-  // then tell fromZonedTime to treat those fields as IST.
-  const naiveAsUtc = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  return fromZonedTime(naiveAsUtc, APP_TIMEZONE).toISOString();
+  return new Date(value).toISOString();
 }
 
 /**
  * Format a UTC ISO string into a value usable by <input type="datetime-local">,
- * displaying the equivalent IST wall-clock time (verified against date-fns-tz directly:
- * formatting toZonedTime's output with the same IANA zone yields the correct
- * wall-clock fields regardless of the browser's own local timezone).
+ * expressed in the viewer's own local wall-clock time.
  */
 export function utcIsoToDatetimeLocalValue(utcIso: string): string {
   if (!utcIso) return '';
-  return formatTz(utcToIst(utcIso), "yyyy-MM-dd'T'HH:mm", { timeZone: APP_TIMEZONE });
+  return format(new Date(utcIso), "yyyy-MM-dd'T'HH:mm");
 }

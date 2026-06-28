@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../../../store/authStore';
 import { useVoteOnPoll, useFinalizePoll, useCancelPoll } from '../../../hooks/usePollMutations';
 import { PollTieError } from '../../../services/poll.service';
-import { formatIst } from '../../../utils/timezone';
+import { formatLocal } from '../../../utils/timezone';
 import type { MeetingPoll } from '../../../types/poll.types';
 
 interface Props {
@@ -81,7 +81,7 @@ const PollCard: React.FC<Props> = ({ poll }) => {
                   ${isMine ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
               >
                 <span className="text-xs text-gray-700">
-                  {formatIst(opt.startTime, 'EEE, MMM d · h:mm a')} – {formatIst(opt.endTime, 'h:mm a')}
+                  {formatLocal(opt.startTime, 'EEE, MMM d · h:mm a')} – {formatLocal(opt.endTime, 'h:mm a')}
                 </span>
                 <span className="flex items-center gap-1.5 flex-shrink-0">
                   {isMine && (
@@ -116,7 +116,7 @@ const PollCard: React.FC<Props> = ({ poll }) => {
                            hover:border-amber-400 text-left disabled:opacity-50"
               >
                 <span className="text-xs text-gray-700">
-                  {formatIst(opt.startTime, 'EEE, MMM d · h:mm a')} – {formatIst(opt.endTime, 'h:mm a')}
+                  {formatLocal(opt.startTime, 'EEE, MMM d · h:mm a')} – {formatLocal(opt.endTime, 'h:mm a')}
                 </span>
                 <span className="text-xs font-medium text-amber-700">{opt.voteCount} votes</span>
               </button>

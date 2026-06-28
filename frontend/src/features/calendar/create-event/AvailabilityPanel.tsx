@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { eventService } from '../../../services/event.service';
-import { formatIst } from '../../../utils/timezone';
+import { formatLocal } from '../../../utils/timezone';
 import type { AvailabilitySlot } from '../../../types/event.types';
 
 interface Props {
@@ -72,7 +72,7 @@ const AvailabilityPanel: React.FC<Props> = ({
       <div className="mb-4">
         <p className="text-sm font-medium text-gray-800">Smart Availability Finder</p>
         <p className="text-xs text-gray-500 mt-0.5">
-          Searching {formatIst(windowStart, 'MMM d, h:mm a')} – {formatIst(windowEnd, 'h:mm a')} IST
+          Searching {formatLocal(windowStart, 'MMM d, h:mm a')} – {formatLocal(windowEnd, 'h:mm a')}
           {' · '}{durationMinutes} min meeting
         </p>
       </div>
@@ -111,7 +111,7 @@ const AvailabilityPanel: React.FC<Props> = ({
                          hover:border-blue-400 hover:bg-blue-50/40 transition-colors text-left"
             >
               <span className="text-sm font-medium text-gray-800">
-                {formatIst(slot.start, 'EEE, MMM d')} · {formatIst(slot.start, 'h:mm a')} – {formatIst(slot.end, 'h:mm a')}
+                {formatLocal(slot.start, 'EEE, MMM d')} · {formatLocal(slot.start, 'h:mm a')} – {formatLocal(slot.end, 'h:mm a')}
               </span>
               <span className="text-xs text-blue-600 font-medium">Use this slot →</span>
             </button>

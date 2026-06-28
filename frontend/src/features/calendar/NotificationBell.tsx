@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePendingInvitations } from '../../hooks/usePendingInvitations';
 import { useRespondToInvitation } from '../../hooks/useRespondToInvitation';
-import { formatIst } from '../../utils/timezone';
+import { formatLocal } from '../../utils/timezone';
 import type { InvitationStatus } from '../../types/event.types';
 
 const NotificationBell: React.FC = () => {
@@ -73,7 +73,7 @@ const NotificationBell: React.FC = () => {
                     <p className="text-sm font-medium text-gray-800 truncate">{event.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {event.organizerId?.name ? `${event.organizerId.name} · ` : ''}
-                      {formatIst(event.startTime, 'EEE, MMM d · h:mm a')} IST
+                      {formatLocal(event.startTime, 'EEE, MMM d · h:mm a')}
                     </p>
                     <div className="flex gap-1.5 mt-2">
                       <button

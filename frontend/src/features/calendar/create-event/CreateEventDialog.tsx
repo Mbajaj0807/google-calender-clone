@@ -12,6 +12,7 @@ import { eventService } from '../../../services/event.service';
 import {
   datetimeLocalValueToUtcIso,
   utcIsoToDatetimeLocalValue,
+  getUtcOffsetLabel,
 } from '../../../utils/timezone';
 import type { OrgMember } from '../../../types/auth.types';
 import type {
@@ -276,7 +277,7 @@ const CreateEventDialog: React.FC<Props> = ({ open, onClose, initialDate, onStar
                 onChange={(e) => setField('endTime', e.target.value)}
               />
             </div>
-            <p className="text-xs text-gray-400 -mt-2">Times shown in IST (Asia/Kolkata)</p>
+            <p className="text-xs text-gray-400 -mt-2">Times shown in your local time ({getUtcOffsetLabel()})</p>
 
             <Input
               label="Location"
