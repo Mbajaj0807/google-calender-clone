@@ -75,7 +75,6 @@ All timestamps stored in **UTC**, displayed in each user's local timezone.
 
 ## Creative Features
 
-These go beyond the assignment requirements and reflect deliberate product thinking.
 
 ### 1. Unified Calendar (not split calendars)
 Most calendar apps separate "work" and "personal" into different calendars. Here, everything lives in one event collection. The Professional and Personal dashboards are just different views over the same data — so your schedule is always consistent and you never have to check two places.
